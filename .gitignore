@@ -1,0 +1,18 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Safety Net: Ignore data/models even if they are in parent folder
+data/
+models/
+*.pt
+*.pth
+*.bin
+
+# System Junk
+.DS_Store
+Thumbs.db
