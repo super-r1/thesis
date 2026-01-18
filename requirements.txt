@@ -1,7 +1,9 @@
-torch
+torch==2.6.0
+torchvision
+torchaudio
 transformers
 datasets
 pandas
 numpy
 tqdm
-jupyter
+python-dotenv
