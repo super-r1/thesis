@@ -4,6 +4,7 @@ torchaudio
 transformers
 datasets
 pandas
-numpy
+numpy<2.0.0
 tqdm
 python-dotenv
+unbabel-comet
