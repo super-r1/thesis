@@ -18,3 +18,7 @@ models/
 Thumbs.db
 
 .env
+
+# outputs
+outputs/
+!outputs/.gitkeep
