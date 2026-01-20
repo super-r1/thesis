@@ -10,7 +10,7 @@
 # load environment
 module purge
 module load 2024
-module load CUDA/12.4.1  
+module load CUDA/12.6.0 
 
 # set up scratch storage for faster performance
 SCRATCH_DIR="/scratch-shared/$USER/thesis_run_$SLURM_JOB_ID"
@@ -22,6 +22,7 @@ cd "$SCRATCH_DIR"
 
 # activate conda environment
 source activate translate-gemma
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # run code
 echo "Starting Gemma Translation at $(date)"
