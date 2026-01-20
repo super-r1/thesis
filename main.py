@@ -1,5 +1,6 @@
 import argparse
 import os
+import torch
 import pandas as pd
 from datetime import datetime
 from src import (
@@ -11,6 +12,8 @@ from src import (
 )
 
 def main():
+    torch.set_float32_matmul_precision('high')
+
     parser = argparse.ArgumentParser(description="Translation Pipeline")
     parser.add_argument("--force", action="store_true", help="Run translation model even if cache exists")
     parser.add_argument("--limit", type=int, default=None, help="Number of sentences (default: all)")

@@ -22,3 +22,5 @@ Thumbs.db
 # outputs
 outputs/
 !outputs/.gitkeep
+logs/
+!logs/.gitkeep

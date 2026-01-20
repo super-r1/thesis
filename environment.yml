@@ -24,3 +24,6 @@ dependencies:
       - einops
       - pillow
       - python-dotenv
+      - peft
+      - trl==0.9.6
+      - rich
