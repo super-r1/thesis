@@ -11,7 +11,7 @@ def load_model_and_processor():
 
     model = AutoModelForImageTextToText.from_pretrained(
         model_id, 
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         device_map=device, 
         token=HF_TOKEN
     )
