@@ -14,17 +14,25 @@ This repository contains the code for my thesis project on Machine Translation.
 │   ├── translate.py     # Run translations
 │   └── evaluate.py      # Metric calculations
 ├── notebooks/           # Experimental and exploratory Jupyter Notebooks
-├── outputs/             # (Created at runtime) Saved translations and scores
+├── outputs/             # (Created at runtime, ignored by Git) Saved results
 └── .env                 # Environment variables (KEEP PRIVATE)
 ```
 
 ## Usage
 
 ### 1. Environment Setup
-`pip install -r requirements.txt`
+If GPU available:
+`conda env create -f environment-gpu.yml`
+
+If no GPU available:
+`conda env create -f environment.yml`
+
+`conda activate translate-gemma`
 
 ### 2. Configuration
 Add your HuggingFace `HF_TOKEN` in the `.env` file.
 
 ### 3. Running the Pipeline
-`python main.py`
+Locally: `python main.py`
+
+On cluster: `sbatch job.sh`
