@@ -8,7 +8,7 @@ import gzip
 import json
 
 # file paths and urls
-DATA_DIR = os.path.abspath("../../data")
+from .config import DATA_DIR
 FLORES_DIR = os.path.join(DATA_DIR, "flores200_dataset")
 DOWNLOAD_URL = "https://tinyurl.com/flores200dataset"
 TAR_PATH = os.path.join(DATA_DIR, "flores200.tar.gz")
