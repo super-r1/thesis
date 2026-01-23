@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--force", action="store_true", help="Run translation model even if cache exists")
     parser.add_argument("--limit", type=int, default=None, help="Number of sentences (default: all)")
     parser.add_argument("--cache", type=str, default=None, help="Custom path for the translation cache")
+    parser.add_argument("--checkpoint", type=str, default=None, help="Path to fine-tune checkpoint")
     args = parser.parse_args()
 
     # path to cache data
@@ -25,14 +26,16 @@ def main():
         cache_file = args.cache
     else:
         limit_str = f"limit_{args.limit}" if args.limit else "all"
-        cache_file = f"outputs/translations_{limit_str}.csv"
+        
+        checkpt_suffix = f"_{os.path.basename(args.checkpoint)}" if args.checkpoint else ""
+        cache_file = f"outputs/translations_{limit_str}{checkpt_suffix}.csv"
     
     os.makedirs("outputs", exist_ok=True)
 
     # make new translations or load existing ones
     if args.force or not os.path.exists(cache_file):
         print(f"No valid cache found at {cache_file}. Running translation model...")
-        model, processor = load_model_and_processor()
+        model, processor = load_model_and_processor(checkpoint_path=args.checkpoint)
         sources, targets = load_wmt_data(lang="en-nl_NL", limit=args.limit)
         
         translations = batch_translate(model, processor, sources)
@@ -67,6 +70,7 @@ def main():
     # make summary of results text file
     with open(results_file.replace(".csv", "_summary.txt"), "w") as f:
         f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Checkpoint: {args.checkpoint if args.checkpoint else 'None'}\n")
         f.write(f"Average COMET-22 (Higher is better): {comet_results.system_score:.4f}\n")
         f.write(f"Average MetricX-24 (Lower is better): {avg_metricx:.4f}\n")
         f.write(f"Sample Count: {len(translations)}\n")
