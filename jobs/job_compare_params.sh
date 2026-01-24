@@ -26,9 +26,17 @@ cd "$SCRATCH_DIR"
 source activate translate-gemma
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
-# run training
-echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python train.py
+# create 7 different experiment configurations
+# ="exp_name learning_rate rank layers"
+experiments=(
+    "all_1e4 1e-4 16 all-linear"
+    "all_5e5 5e-5 16 all-linear"
+    "all_2e5 2e-5 16 all-linear"
+    "attn_1e4 1e-4 8 attention"
+    "attn_5e5 5e-5 8 attention"
+    "attn_1e5 1e-5 8 attention"
+    "attn_1e6 1e-6 8 attention"
+)
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
@@ -37,8 +45,30 @@ OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
 OUTPUT_PATH="$SLURM_SUBMIT_DIR/outputs/fine_tuned_model_$SLURM_JOB_ID"
 mkdir -p "$OUTPUT_PATH"
 
-# copy results
-echo "Moving trained model from $OUTPUT_DIR to $OUTPUT_PATH"
-cp -r "$OUTPUT_DIR"/* "$OUTPUT_PATH/"
+# loop through experiments
+# echo "Starting Gemma Training (Fine-Tuning) at $(date)"
+for exp in "${experiments[@]}"; do
+    read -r name lr rank layers <<< "$exp"
+    
+    echo "------------------------------------------------"
+    echo "RUNNING EXPERIMENT: $name"
+    echo "Params: LR=$lr, Rank=$rank, Layers=$layers"
+    echo "------------------------------------------------"
 
-echo "Job completed at $(date)"
+    # run experiment
+    python -u train.py --name "$name" --lr "$lr" --rank "$rank" --layers "$layers"
+
+    # Copy this specific model result to permanent storage immediately after run
+    # copy results for this experiment
+    echo "Saving $name to $OUTPUT_PATH/$name"
+    mkdir -p "$OUTPUT_PATH/$name"
+    cp -r "$OUTPUT_DIR/$name"/* "$OUTPUT_PATH/$name/"
+    
+    # clear scratch (to save space)
+    rm -rf "$OUTPUT_DIR/$name"
+    
+    echo "Completed $name at $(date)"
+    echo ""
+done
+
+echo "All 7 runs completed at $(date)"
