@@ -58,10 +58,10 @@ for exp in "${experiments[@]}"; do
     # copy results for this experiment
     echo "Saving $name to $OUTPUT_PATH/$name"
     mkdir -p "$OUTPUT_PATH/$name"
-    cp -r "./outputs/$name/"* "$OUTPUT_PATH/$name/"
+    cp -r "$SCRATCH_DIR/outputs/$name"/* "$OUTPUT_PATH/$name/"
     
     # clear scratch (to save space)
-    rm -rf "./outputs/$name"
+    rm -rf "$SCRATCH_DIR/outputs/$name"
     
     echo "Completed $name at $(date)"
     echo ""
