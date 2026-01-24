@@ -6,7 +6,6 @@ from peft import LoraConfig
 from transformers import AutoModelForImageTextToText, AutoProcessor, TrainingArguments
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from src import load_model_and_processor, load_flores_data
-from src.config import OUTPUT_DIR
 
 # setup argparser
 parser = argparse.ArgumentParser(description="Fine-tune pipeline")
@@ -82,7 +81,7 @@ lora_config = LoraConfig(
 
 # trainer args
 training_args = TrainingArguments(
-    output_dir=os.path.join(OUTPUT_DIR, args.name),
+    output_dir=os.path.join("outputs", args.name),
     per_device_train_batch_size=4,
     gradient_accumulation_steps=2,
     learning_rate=args.lr,

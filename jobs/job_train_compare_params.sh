@@ -27,7 +27,7 @@ source activate translate-gemma
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # create 7 different experiment configurations
-# ="exp_name learning_rate rank layers"
+# "exp_name learning_rate rank layers"
 experiments=(
     "all_1e4 1e-4 16 all-linear"
     "all_5e5 5e-5 16 all-linear"
@@ -38,8 +38,8 @@ experiments=(
     "attn_1e6 1e-6 8 attention"
 )
 
-# get OUTPUT_DIR from config
-OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
+# local OUTPUT directory in scratch
+LOCAL_OUTPUT_ROOT="$SCRATCH_DIR/outputs"
 
 # make output folder in home directory
 OUTPUT_PATH="$SLURM_SUBMIT_DIR/outputs/fine_tuned_model_$SLURM_JOB_ID"
@@ -58,14 +58,13 @@ for exp in "${experiments[@]}"; do
     # run experiment
     python -u train.py --name "$name" --lr "$lr" --rank "$rank" --layers "$layers"
 
-    # Copy this specific model result to permanent storage immediately after run
     # copy results for this experiment
     echo "Saving $name to $OUTPUT_PATH/$name"
     mkdir -p "$OUTPUT_PATH/$name"
-    cp -r "$OUTPUT_DIR/$name"/* "$OUTPUT_PATH/$name/"
+    cp -r "$LOCAL_OUTPUT_ROOT/$name"/* "$OUTPUT_PATH/$name/"
     
     # clear scratch (to save space)
-    rm -rf "$OUTPUT_DIR/$name"
+    rm -rf "$LOCAL_OUTPUT_ROOT/$name"
     
     echo "Completed $name at $(date)"
     echo ""
