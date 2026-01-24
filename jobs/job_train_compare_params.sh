@@ -55,10 +55,12 @@ for exp in "${experiments[@]}"; do
     # run experiment
     python -u train.py --name "$name" --lr "$lr" --rank "$rank" --layers "$layers"
 
+    LOCAL_SAVE_DIR="$SCRATCH_DIR/outputs/$name"
+
     # copy results for this experiment
-    echo "Saving $name to $OUTPUT_PATH/$name"
+    echo "Saving $name from $LOCAL_SAVE_DIR/checkpoint-* to $OUTPUT_PATH/$name"
     mkdir -p "$OUTPUT_PATH/$name"
-    cp -r "$SCRATCH_DIR/outputs/$name"/* "$OUTPUT_PATH/$name/"
+    cp -r "$SCRATCH_DIR/outputs/$name"/checkpoint-*/* "$OUTPUT_PATH/$name/"
     
     # clear scratch (to save space)
     rm -rf "$SCRATCH_DIR/outputs/$name"
