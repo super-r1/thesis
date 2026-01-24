@@ -27,7 +27,7 @@ def main():
     else:
         limit_str = f"limit_{args.limit}" if args.limit else "all"
         
-        checkpt_suffix = f"_{os.path.basename(args.checkpoint)}" if args.checkpoint else ""
+        checkpt_suffix = f"_{os.path.basename(os.path.normpath(args.checkpoint))}" if args.checkpoint else ""
         cache_file = f"outputs/translations_{limit_str}{checkpt_suffix}.csv"
     
     os.makedirs("outputs", exist_ok=True)
