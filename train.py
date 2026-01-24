@@ -70,6 +70,7 @@ training_args = TrainingArguments(
     per_device_train_batch_size=4,
     gradient_accumulation_steps=4,
     learning_rate=2e-4,
+    #learning_rate=1e-6,
     bf16=torch.cuda.is_available(),
     logging_steps=10,
     num_train_epochs=3,
