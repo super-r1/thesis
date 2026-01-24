@@ -81,7 +81,7 @@ lora_config = LoraConfig(
 
 # trainer args
 training_args = TrainingArguments(
-    output_dir=os.path.join("outputs", args.name),
+    output_dir=f"outputs/{args.name}",
     per_device_train_batch_size=4,
     gradient_accumulation_steps=2,
     learning_rate=args.lr,

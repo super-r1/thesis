@@ -38,9 +38,6 @@ experiments=(
     "attn_1e6 1e-6 8 attention"
 )
 
-# local OUTPUT directory in scratch
-LOCAL_OUTPUT_ROOT="$SCRATCH_DIR/outputs"
-
 # make output folder in home directory
 OUTPUT_PATH="$SLURM_SUBMIT_DIR/outputs/fine_tuned_model_$SLURM_JOB_ID"
 mkdir -p "$OUTPUT_PATH"
@@ -61,10 +58,10 @@ for exp in "${experiments[@]}"; do
     # copy results for this experiment
     echo "Saving $name to $OUTPUT_PATH/$name"
     mkdir -p "$OUTPUT_PATH/$name"
-    cp -r "$LOCAL_OUTPUT_ROOT/$name"/* "$OUTPUT_PATH/$name/"
+    cp -r "./outputs/$name/"* "$OUTPUT_PATH/$name/"
     
     # clear scratch (to save space)
-    rm -rf "$LOCAL_OUTPUT_ROOT/$name"
+    rm -rf "./outputs/$name"
     
     echo "Completed $name at $(date)"
     echo ""
