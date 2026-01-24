@@ -1,3 +1,4 @@
+import argparse
 import os
 import torch
 from datasets import Dataset
@@ -5,7 +6,21 @@ from peft import LoraConfig
 from transformers import AutoModelForImageTextToText, AutoProcessor, TrainingArguments
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from src import load_model_and_processor, load_flores_data
-from src.config import OUTPUT_DIR
+
+# setup argparser
+parser = argparse.ArgumentParser(description="Fine-tune pipeline")
+parser.add_argument("--lr", type=float, default=1e-6, help="Learning rate")
+parser.add_argument("--rank", type=int, default=8, help="LoRA rank")
+parser.add_argument("--layers", type=str, default="attention", choices=["all-linear", "attention"], 
+                    help="LoRA target layers")
+parser.add_argument("--name", type=str, default="default", help="Name for making output subfolder")
+args = parser.parse_args()
+
+# either target all layers or only attention layers
+if args.layers == "all-linear":
+    target_modules = "all-linear"
+else:
+    target_modules = ["q_proj", "v_proj", "k_proj", "o_proj"]
 
 # load model and processor
 model, processor = load_model_and_processor()
@@ -57,28 +72,31 @@ collator = DataCollatorForCompletionOnlyLM(
 
 # lora config
 lora_config = LoraConfig(
-    r=16,
-    lora_alpha=32,
-    target_modules="all-linear",
+    r=args.rank,
+    lora_alpha=args.rank * 2,
+    target_modules=target_modules,
     task_type="CAUSAL_LM",
-    lora_dropout=0.05,
+    lora_dropout=0.1,
 )
 
 # trainer args
 training_args = TrainingArguments(
-    output_dir=OUTPUT_DIR,
+    output_dir=os.path.join(os.getcwd(), "outputs", args.name),
     per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,
-    learning_rate=2e-4,
-    #learning_rate=1e-6,
+    gradient_accumulation_steps=2,
+    learning_rate=args.lr,
+    lr_scheduler_type="cosine",
+    warmup_ratio=0.1,
     bf16=torch.cuda.is_available(),
-    logging_steps=10,
-    num_train_epochs=3,
+    logging_steps=5,
+    num_train_epochs=2,
     save_strategy="epoch",
+    save_total_limit=1,
+    load_best_model_at_end=False,
     remove_unused_columns=True,
     gradient_checkpointing=True,
     optim="adamw_torch_fused"
-#    dataloader_num_workers=4,
+    #dataloader_num_workers=4,
 )
 
 # create trainer

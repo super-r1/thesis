@@ -4,7 +4,8 @@ from peft import PeftModel
 from .config import model_id, HF_TOKEN, device
 
 def load_model_and_processor(checkpoint_path=None):
-    processor = AutoProcessor.from_pretrained(model_id, token=HF_TOKEN)
+    #processor = AutoProcessor.from_pretrained(model_id, token=HF_TOKEN)
+    processor = AutoProcessor.from_pretrained(model_id, token=HF_TOKEN, use_fast=True)
     
     # padding for batch processing
     processor.tokenizer.padding_side = "left"
