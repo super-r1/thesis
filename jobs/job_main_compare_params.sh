@@ -39,8 +39,7 @@ experiments=(
 )
 
 # get parent folder for checkpoints
-TRAIN_JOB_ID="REPLACE_WITH_YOUR_TRAIN_JOB_ID"
-CHECKPOINT_BASE="$SLURM_SUBMIT_DIR/outputs/fine_tuned_model_$TRAIN_JOB_ID"
+CHECKPOINT_BASE="$SLURM_SUBMIT_DIR/outputs/compare_lr_train"
 
 # run through checkpoints
 echo "Starting Gemma Translation at $(date)"

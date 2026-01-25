@@ -9,7 +9,7 @@ from src import load_model_and_processor, load_flores_data
 
 # setup argparser
 parser = argparse.ArgumentParser(description="Fine-tune pipeline")
-parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate")
+parser.add_argument("--lr", type=float, default=1e-6, help="Learning rate")
 parser.add_argument("--rank", type=int, default=8, help="LoRA rank")
 parser.add_argument("--layers", type=str, default="attention", choices=["all-linear", "attention"], 
                     help="LoRA target layers")
