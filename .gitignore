@@ -6,6 +6,7 @@ __pycache__/
 # Jupyter Notebooks
 .ipynb_checkpoints/
 notebooks/
+test.ipynb
 
 # Safety Net: Ignore data/models even if they are in parent folder
 data/
