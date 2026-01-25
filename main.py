@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Number of sentences (default: all)")
     parser.add_argument("--cache", type=str, default=None, help="Custom path for the translation cache")
     parser.add_argument("--checkpoint", type=str, default=None, help="Path to fine-tune checkpoint")
+    parser.add_argument("--num_samples", type=int, default=1, help="Number of output translations per source sentence (default: 1)")
     args = parser.parse_args()
 
     # path to cache data
@@ -26,9 +27,11 @@ def main():
         cache_file = args.cache
     else:
         limit_str = f"limit_{args.limit}" if args.limit else "all"
-        
+        samples_str = f"_{args.num_samples}_samples" if args.num_samples > 1 else ""
         checkpt_suffix = f"_{os.path.basename(os.path.normpath(args.checkpoint))}" if args.checkpoint else ""
-        cache_file = f"outputs/translations_{limit_str}{checkpt_suffix}.csv"
+        
+        # Updated filename to include sample count for easier tracking
+        cache_file = f"outputs/translations_{limit_str}{samples_str}{checkpt_suffix}.csv"
     
     os.makedirs("outputs", exist_ok=True)
 
@@ -38,29 +41,44 @@ def main():
         model, processor = load_model_and_processor(checkpoint_path=args.checkpoint)
         sources, targets = load_wmt_data(lang="en-nl_NL", limit=args.limit)
         
-        translations = batch_translate(model, processor, sources)
+        # get translations
+        # returns list of dicts: [{'source', 'translation', 'likelihood'}, ...]
+        results_dicts = batch_translate(model, processor, sources, num_samples=args.num_samples)
 
+        # convert results to dataframe
+        df = pd.DataFrame(results_dicts)
+
+        # copy targets for num_samples>1 (multiple translations for same source)
+        expanded_targets = []
+        for t in targets:
+            expanded_targets.extend([t] * args.num_samples)
+        
+        df["target"] = expanded_targets
+        
         # save to cache
-        df = pd.DataFrame({"source": sources, "target": targets, "translation": translations})
         df.to_csv(cache_file, index=False)
         print(f"Saved to {cache_file}")
     else:
         print(f"Found cache translations in {cache_file}")
         df = pd.read_csv(cache_file)
-        sources, targets, translations = df['source'].tolist(), df['target'].tolist(), df['translation'].tolist()
+
+    # Prepare lists for evaluation
+    curr_sources = df['source'].tolist()
+    curr_translations = df['translation'].tolist()
+    curr_targets = df['target'].tolist()
 
     # evaluate comet
-    print(f"Evaluating {len(translations)} sentences with COMET-22...")
-    comet_results = comet22_eval(sources, translations, targets)
+    print(f"Evaluating {len(curr_translations)} candidates with COMET-22...")
+    comet_results = comet22_eval(curr_sources, curr_translations, curr_targets)
     df["comet22_score"] = comet_results.scores
 
     # evaluate metricx
-    print(f"Evaluating {len(translations)} sentences with MetricX-24...")
-    metricx_scores = metricx24_eval(sources, translations)
+    print(f"Evaluating {len(curr_translations)} candidates with MetricX-24...")
+    metricx_scores = metricx24_eval(curr_sources, curr_translations)
     df["metricx24_score"] = metricx_scores
     avg_metricx = sum(metricx_scores) / len(metricx_scores)
     
-    # create results filename with timestamp (YearMonthDay_HourMinute)
+    # create results filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     results_file = cache_file.replace("translations_", f"results_{timestamp}_")
     
@@ -71,9 +89,10 @@ def main():
     with open(results_file.replace(".csv", "_summary.txt"), "w") as f:
         f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Checkpoint: {args.checkpoint if args.checkpoint else 'None'}\n")
+        f.write(f"Samples per Sentence: {args.num_samples}\n")
         f.write(f"Average COMET-22 (Higher is better): {comet_results.system_score:.4f}\n")
         f.write(f"Average MetricX-24 (Lower is better): {avg_metricx:.4f}\n")
-        f.write(f"Sample Count: {len(translations)}\n")
+        f.write(f"Total Candidate Count: {len(curr_translations)}\n")
 
     print(f"\nAverage COMET-22: {comet_results.system_score:.4f}")
     print(f"Average MetricX-24: {avg_metricx:.4f}")
