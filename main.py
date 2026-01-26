@@ -20,6 +20,10 @@ def main():
     parser.add_argument("--cache", type=str, default=None, help="Custom path for the translation cache")
     parser.add_argument("--checkpoint", type=str, default=None, help="Path to fine-tune checkpoint")
     parser.add_argument("--num_samples", type=int, default=1, help="Number of output translations per source sentence (default: 1)")
+    parser.add_argument("--likelihood_mode", type=str, default="generation", 
+                    choices=["generation", "reeval"],
+                    help="generation: uses scores from the decoding process; "
+                         "reeval: re-calculates likelihood via a second forward pass.")
     args = parser.parse_args()
 
     # path to cache data
@@ -43,7 +47,7 @@ def main():
         
         # get translations
         # returns list of dicts: [{'source', 'translation', 'likelihood'}, ...]
-        results_dicts = batch_translate(model, processor, sources, num_samples=args.num_samples)
+        results_dicts = batch_translate(model, processor, sources, num_samples=args.num_samples, likelihood_mode=args.likelihood_mode)
 
         # convert results to dataframe
         df = pd.DataFrame(results_dicts)
