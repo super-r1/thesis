@@ -1,11 +1,13 @@
 import argparse
 import os
+import random
 import torch
 from datasets import Dataset
 from peft import LoraConfig
 from transformers import AutoModelForImageTextToText, AutoProcessor, TrainingArguments
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from src import load_model_and_processor, load_flores_data
+from src.config import LANG_MAP
 
 # setup argparser
 parser = argparse.ArgumentParser(description="Fine-tune pipeline")
@@ -14,6 +16,10 @@ parser.add_argument("--rank", type=int, default=8, help="LoRA rank")
 parser.add_argument("--layers", type=str, default="attention", choices=["all-linear", "attention"], 
                     help="LoRA target layers")
 parser.add_argument("--name", type=str, default="default", help="Name for making output subfolder")
+parser.add_argument("--limit", type=int, default=None, 
+                    help="Number of training sentences per language (default: all). Total sentences = limit x num_languages")
+parser.add_argument("--langs", type=str, nargs="+", default=["nl"], choices=LANG_MAP.keys(), 
+                    help="Languages to process (e.g., --langs nl zh)")
 args = parser.parse_args()
 
 # either target all layers or only attention layers
@@ -31,37 +37,30 @@ processor.tokenizer.pad_token = processor.tokenizer.eos_token
 
 # create huggingface Dataset object for flores dataset
 # follows the specific requirements for Gemma prompts
-def get_formatted_dataset():
-    # get "raw" data
-    sources, targets = load_flores_data()
+def get_formatted_dataset(langs, limit=None):
+    all_formatted_data = []
 
-    formatted_data = []
-    for s, t in zip(sources, targets):
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text", 
-                        "text": s,
-                        "source_lang_code": "en",
-                        "target_lang_code": "nl",
-                    }
-                ]
-            },
-            {
-                "role": "assistant",
-                "content": t
-            }
-        ]
-        
-        # apply template
-        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-        formatted_data.append({"text": text})
+    for lang in langs:
+        # get flores data for language
+        sources, targets = load_flores_data(LANG_MAP[lang]["flores"], limit=limit)
+
+        for s, t in zip(sources, targets):
+            messages = [
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": s, "source_lang_code": "en", "target_lang_code": LANG_MAP[lang]["gemma"]}]
+                },
+                {"role": "assistant", "content": t}
+            ]
+            text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+            all_formatted_data.append({"text": text})
     
-    return Dataset.from_list(formatted_data)
+    # random order of languages (with seed for reproducibility)
+    random.seed(42)
+    random.shuffle(all_formatted_data)
+    return Dataset.from_list(all_formatted_data)
 
-train_dataset = get_formatted_dataset()
+train_dataset = get_formatted_dataset(args.langs, limit=args.limit)
 
 # mask user prompt to prevent training on it
 response_template_ids = processor.tokenizer.encode("<start_of_turn>model", add_special_tokens=False)
