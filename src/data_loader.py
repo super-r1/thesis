@@ -6,6 +6,7 @@ import tarfile
 from dotenv import load_dotenv
 import gzip
 import json
+from .config import LANG_MAP
 
 # file paths and urls
 from .config import DATA_DIR
@@ -19,7 +20,7 @@ MADLAD_FILE = os.path.join(MADLAD_DIR, "nl_clean_0000.jsonl.gz")
 
 def load_wmt_data(lang, limit=None):
     """
-    Loads WMT dataset for the specified language pair.
+    Loads WMT dataset for specified language.
     """
     ds = load_dataset("google/wmt24pp", lang)
     df = pd.DataFrame(ds['train'])
@@ -29,9 +30,9 @@ def load_wmt_data(lang, limit=None):
     
     return sources, targets
 
-def load_flores_data(limit=None):
+def load_flores_data(lang, limit=None):
     """
-    Loads FLORES-200 dataset for English-Dutch language pair.
+    Loads FLORES-200 dataset for specified language.
     """
 
     # check if dataset is already downloaded
@@ -54,20 +55,21 @@ def load_flores_data(limit=None):
         else:
             raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
 
-    # load English and Dutch dev sets
+    # load English and target dev sets
     eng_path = os.path.join(FLORES_DIR, "dev", "eng_Latn.dev")
-    nld_path = os.path.join(FLORES_DIR, "dev", "nld_Latn.dev")
+    tgt_path = os.path.join(FLORES_DIR, "dev", f"{lang}.dev")
 
     with open(eng_path, "r", encoding="utf-8") as f:
         english_sentences = [line.strip() for line in f]
 
-    with open(nld_path, "r", encoding="utf-8") as f:
-        dutch_sentences = [line.strip() for line in f]
+    with open(tgt_path, "r", encoding="utf-8") as f:
+        tgt_sentences = [line.strip() for line in f]
 
     sources = english_sentences[:limit]
-    targets = dutch_sentences[:limit]
+    targets = tgt_sentences[:limit]
 
     return sources, targets
+
 
 def load_bouquet_data(limit=None):
     """

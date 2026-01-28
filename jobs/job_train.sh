@@ -15,7 +15,7 @@ module load CUDA/12.6.0
 export PYTHONWARNINGS="ignore:pkg_resources is deprecated"
 
 # set up scratch storage for faster performance
-SCRATCH_DIR="/scratch-shared/$USER/thesis_train_$SLURM_JOB_ID"
+SCRATCH_DIR="/scratch-shared/$USER/$SLURM_JOB_ID"
 export HF_HOME="/scratch-shared/$USER/hf_cache"
 mkdir -p "$SCRATCH_DIR"
 mkdir -p "$HF_HOME" 
@@ -28,7 +28,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python train.py
+python -u train.py --name all_1e6 --lr 1e-6 --rank 16 --layers all-linear
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
