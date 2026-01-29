@@ -15,7 +15,7 @@ module load CUDA/12.6.0
 export PYTHONWARNINGS="ignore:pkg_resources is deprecated"
 
 # set up scratch storage for faster performance
-SCRATCH_DIR="/scratch-shared/$USER/thesis_train_$SLURM_JOB_ID"
+SCRATCH_DIR="/scratch-shared/$USER/$SLURM_JOB_ID"
 export HF_HOME="/scratch-shared/$USER/hf_cache"
 mkdir -p "$SCRATCH_DIR"
 mkdir -p "$HF_HOME" 

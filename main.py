@@ -72,7 +72,8 @@ def main():
                 model, processor, sources, 
                 target_lang=gemma_code, 
                 num_samples=args.num_samples, 
-                likelihood_mode=args.likelihood_mode
+                likelihood_mode=args.likelihood_mode,
+                batch_size=2
             )
 
             # copy targets for num_samples>1 (multiple translations for same source)
