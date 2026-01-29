@@ -29,7 +29,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 # run code
 echo "Starting Gemma Translation at $(date)"
 # python main.py
-python main.py --checkpoint "$SLURM_SUBMIT_DIR/outputs/compare_lr_train/attn_1e6" --limit 50 --num_samples 5 --force --likelihood_mode reeval
+python main.py --checkpoint "$SLURM_SUBMIT_DIR/outputs/nl_zh_run_1/checkpoint-500" --limit 150 --num_samples 5 --force --likelihood_mode reeval --langs nl zh
 
 # save results
 echo "Moving results to Home directory..."

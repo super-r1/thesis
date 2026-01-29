@@ -28,7 +28,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python train.py
+python train.py --name nl_zh_run_1 --langs nl zh
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
