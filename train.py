@@ -12,8 +12,8 @@ from src.config import LANG_MAP
 # setup argparser
 parser = argparse.ArgumentParser(description="Fine-tune pipeline")
 parser.add_argument("--lr", type=float, default=1e-6, help="Learning rate")
-parser.add_argument("--rank", type=int, default=8, help="LoRA rank")
-parser.add_argument("--layers", type=str, default="attention", choices=["all-linear", "attention"], 
+parser.add_argument("--rank", type=int, default=16, help="LoRA rank")
+parser.add_argument("--layers", type=str, default="all-linear", choices=["all-linear", "attention"], 
                     help="LoRA target layers")
 parser.add_argument("--name", type=str, default="default", help="Name for making output subfolder")
 parser.add_argument("--limit", type=int, default=None, 
