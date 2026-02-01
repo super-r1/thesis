@@ -3,6 +3,7 @@ from datasets import load_dataset
 import os
 import requests
 import tarfile
+import random
 from dotenv import load_dotenv
 import gzip
 import json
@@ -20,19 +21,24 @@ MADLAD_FILE = os.path.join(MADLAD_DIR, "nl_clean_0000.jsonl.gz")
 
 def load_wmt_data(lang, limit=None):
     """
-    Loads WMT dataset for specified language.
+    Loads WMT dataset, filtering out canary lines
     """
     ds = load_dataset("google/wmt24pp", lang)
     df = pd.DataFrame(ds['train'])
     
-    sources = df['source'].tolist()[:limit]
-    targets = df['target'].tolist()[:limit]
+    # discard canary rows
+    df_clean = df[df['domain'] != 'canary']
+    
+    # optionally apply limit and return source+target sentences
+    sources = df_clean['source'].tolist()[:limit]
+    targets = df_clean['target'].tolist()[:limit]
     
     return sources, targets
 
 def load_flores_data(lang, limit=None):
     """
-    Loads FLORES-200 dataset for specified language.
+    Loads FLORES-200 dataset for specified language, combining dev and devtest,
+    and shuffles the resulting pairs.
     """
 
     # check if dataset is already downloaded
@@ -55,18 +61,33 @@ def load_flores_data(lang, limit=None):
         else:
             raise Exception(f"Failed to download dataset. Status code: {response.status_code}")
 
-    # load English and target dev sets
-    eng_path = os.path.join(FLORES_DIR, "dev", "eng_Latn.dev")
-    tgt_path = os.path.join(FLORES_DIR, "dev", f"{lang}.dev")
+    # use both dev and devtest splits
+    splits = ["dev", "devtest"]
 
-    with open(eng_path, "r", encoding="utf-8") as f:
-        english_sentences = [line.strip() for line in f]
+    all_english = []
+    all_tgt = []
 
-    with open(tgt_path, "r", encoding="utf-8") as f:
-        tgt_sentences = [line.strip() for line in f]
+    for split in splits:
+        eng_path = os.path.join(FLORES_DIR, f"{split}", f"eng_Latn.{split}")
+        tgt_path = os.path.join(FLORES_DIR, f"{split}", f"{lang}.{split}")
 
-    sources = english_sentences[:limit]
-    targets = tgt_sentences[:limit]
+        if os.path.exists(eng_path) and os.path.exists(tgt_path):
+            with open(eng_path, "r", encoding="utf-8") as f:
+                all_english.extend([line.strip() for line in f])
+            with open(tgt_path, "r", encoding="utf-8") as f:
+                all_tgt.extend([line.strip() for line in f])
+        else:
+            print(f"Warning: Could not find files in {split} split.")
+
+    # shuffle (combine so that pairs stay together)
+    combined = list(zip(all_english, all_tgt))
+    random.seed(42) # for reproducibility
+    random.shuffle(combined)
+    
+    # back to 2 lists and optionally apply limit
+    sources, targets = zip(*combined)
+    sources = list(sources[:limit])
+    targets = list(targets[:limit])
 
     return sources, targets
 
