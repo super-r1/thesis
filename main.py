@@ -6,6 +6,7 @@ from datetime import datetime
 from src import (
     load_model_and_processor,
     load_wmt_data,
+    load_flores_data,
     batch_translate,
     comet22_eval,
     metricx24_eval
@@ -24,6 +25,7 @@ def main():
     parser.add_argument("--langs", type=str, nargs="+", default=["nl"], choices=LANG_MAP.keys(), 
                         help="Languages to process (e.g., --langs nl zh)")
     parser.add_argument("--num_samples", type=int, default=1, help="Number of output translations per source sentence (default: 1)")
+    parser.add_argument("--dataset", type=str, default="wmt", choices=["wmt", "flores"])
     args = parser.parse_args()
 
     os.makedirs("outputs", exist_ok=True)
@@ -46,7 +48,7 @@ def main():
         if args.cache:
             cache_file = f"{args.cache.replace('.csv', '')}_{lang_key}.csv"
         else:
-            cache_file = f"outputs/translations_{lang_key}_{limit_str}{samples_str}{checkpt_suffix}.csv"
+            cache_file = f"outputs/{args.dataset}_translations_{lang_key}_{limit_str}{samples_str}{checkpt_suffix}.csv"
 
         # make new translations or load existing ones
         if args.force or not os.path.exists(cache_file):
@@ -57,10 +59,13 @@ def main():
                 print("Loading model and processor...")
                 model, processor = load_model_and_processor(checkpoint_path=args.checkpoint)
             
-            # load WMT data for this language
-            wmt_code = LANG_MAP[lang_key]["wmt"]
-            sources, targets = load_wmt_data(lang=wmt_code, limit=args.limit)
-            
+            # load dataset for this language
+            lang_code = LANG_MAP[lang_key][args.dataset]
+            if args.dataset == "wmt":
+                sources, targets = load_wmt_data(lang=lang_code, limit=args.limit)
+            else:
+                sources, targets = load_flores_data(lang=lang_code, limit=args.limit)
+
             # translate
             # returns list of dicts: [{'source', 'translation', 'likelihood'}, ...]
             gemma_code = LANG_MAP[lang_key]["gemma"]

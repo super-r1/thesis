@@ -28,7 +28,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # run code
 echo "Starting Gemma Translation at $(date)"
-python main.py --checkpoint "$SLURM_SUBMIT_DIR/outputs/compare_lr/all_1e6" --force
+python main.py --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint" --langs nl zh --num_samples 5 --dataset wmt
 
 # save results
 echo "Moving results to Home directory..."

@@ -38,16 +38,16 @@ def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4
             # produce num_samples outputs per source
             outputs = model.generate(
                 **inputs, 
-                max_new_tokens=128,
-                do_sample=False,
-                # top_p=None,
-                # top_k=None,
+                max_new_tokens=256,
+                do_sample=True,
+                top_p=0.9,
+                top_k=50,
                 # temperature=None,
                 #num_beams=max(3, num_samples*3),
                 #num_beams=1,
                 #num_beam_groups=num_samples,
                 #trust_remote_code=True,
-                #num_return_sequences=num_samples,
+                num_return_sequences=num_samples,
                 #diversity_penalty=1.0,
                 #no_repeat_ngram_size=3,
                 #length_penalty=0.8,
@@ -91,7 +91,8 @@ def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4
                 )
 
                 # shift logits and labels to align (only use logits for generated tokens)
-                logits = outputs_tf.logits[:, input_len - 1 : -1, :]
+                gen_len = sub_gen_tokens.size(1)
+                logits = outputs_tf.logits[:, input_len - 1 : input_len - 1 + gen_len, :]
 
                 # softmax for normalized log-probs
                 log_probs = F.log_softmax(logits, dim=-1)
