@@ -27,6 +27,8 @@ def main():
                         help="Languages to process (e.g., --langs nl zh)")
     parser.add_argument("--num_samples", type=int, default=1, help="Number of output translations per source sentence (default: 1)")
     parser.add_argument("--dataset", type=str, default="wmt", choices=["wmt", "flores"])
+    parser.add_argument("--mode", type=str, default="standard", choices=["standard", "again"], 
+                    help="Translate mode: 'standard' for one pass, 'again' for translate-again strategy")
     args = parser.parse_args()
 
     os.makedirs("outputs", exist_ok=True)
@@ -49,7 +51,8 @@ def main():
         if args.cache:
             cache_file = f"{args.cache.replace('.csv', '')}_{lang_key}.csv"
         else:
-            cache_file = f"outputs/{args.dataset}_translations_{lang_key}_{limit_str}{samples_str}{checkpt_suffix}.csv"
+            mode_suffix = f"_{args.mode}" if args.mode == "again" else ""
+            cache_file = f"outputs/{args.dataset}_translations_{lang_key}_{limit_str}{samples_str}{checkpt_suffix}{mode_suffix}.csv"
 
         # make new translations or load existing ones
         if args.force or not os.path.exists(cache_file):
@@ -76,6 +79,41 @@ def main():
                 num_samples=args.num_samples, 
                 batch_size=2
             )
+
+            # if translate-again: do another pass with refinement prompt
+            if args.mode == "again":
+                hypos = [result['translation'] for result in results_dicts]
+
+                # extend the original sources and likelihoods to match the number of samples (for correct indexing in the next step)
+                extended_sources = []
+                for s in sources:
+                    extended_sources.extend([s] * args.num_samples)
+                
+                # exact same prompt construction as used during training
+                again_prompts = []
+                for s, h in zip(extended_sources, hypos):
+                    prompt = (
+                        f"Translate from English to {LANG_MAP[lang_key]['name']}.\n"
+                        f"Source: {s}\n"
+                        f"Initial Hypothesis: {h}\n"
+                        f"Instruction: This initial hypothesis needs improvement. Please refine it for accuracy and fluency."
+                    )
+                    again_prompts.append(prompt)
+                
+                # run second translation
+                again_results = batch_translate(
+                    model, processor, again_prompts, 
+                    target_lang=gemma_code, 
+                    num_samples=1, 
+                    batch_size=2,
+                )
+
+                # restore original sources (for correct evaluation)
+                for result, original_s in zip(again_results, extended_sources):
+                    result['source'] = original_s
+
+                # replace results of first pass with results of second pass
+                results_dicts = again_results
 
             # copy targets for num_samples>1 (multiple translations for same source)
             df = pd.DataFrame(results_dicts)
@@ -130,7 +168,7 @@ def main():
         print(f"Results saved to: {results_file}")
 
         # if num_samples > 1: analyze results for translate-again
-        if args.num_samples > 1:
+        if args.num_samples > 1 and args.mode == "standard":
             print(f"Analyzing hypotheses for translate-again data...")
             analyze_hypos(results_file, lang_key, remove_canary=(args.dataset=="wmt"))
 

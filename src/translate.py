@@ -9,6 +9,7 @@ def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4
     
     Returns list of {source, translation, likelihood} dictionaries.
     Likelihood is calculated as the average log-probability per generated token.
+    If use_again_prompt is True, the translate-again prompt is used and the input message format is different.
     """
     all_results = []
     
@@ -19,7 +20,7 @@ def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4
         # format the batch for the TranslateGemma chat template
         batch_messages = [
             [{"role": "user", "content": [{"type": "text", "source_lang_code": "en", 
-              "target_lang_code": target_lang, "text": txt}]}]
+            "target_lang_code": target_lang, "text": txt}]}]
             for txt in batch_texts
         ]
 
