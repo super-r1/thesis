@@ -24,12 +24,14 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # various ways of defining language codes
 LANG_MAP = {
  "nl": {
+ "name": "Dutch",
  "gemma": "nl",
  "wmt": "en-nl_NL",
  "flores": "nld_Latn",
  "madlad": "nl"
  },
  "zh": {
+ "name": "Chinese",
  "gemma": "zh",
  "wmt": "en-zh_CN", 
  "flores": "zho_Hans",

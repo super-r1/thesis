@@ -9,7 +9,8 @@ from src import (
     load_flores_data,
     batch_translate,
     comet22_eval,
-    metricx24_eval
+    metricx24_eval,
+    analyze_hypos
 )
 from src.config import LANG_MAP
 
@@ -127,6 +128,11 @@ def main():
         print(f"Average COMET-22: {comet_results.system_score:.4f}")
         print(f"Average MetricX-24: {avg_metricx:.4f}")
         print(f"Results saved to: {results_file}")
+
+        # if num_samples > 1: analyze results for translate-again
+        if args.num_samples > 1:
+            print(f"Analyzing hypotheses for translate-again data...")
+            analyze_hypos(results_file, lang_key, remove_canary=(args.dataset=="wmt"))
 
 if __name__ == "__main__":
     main()

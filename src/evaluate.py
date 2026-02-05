@@ -1,11 +1,13 @@
 import torch
+import pandas as pd
+import os
 from comet import download_model, load_from_checkpoint
 from transformers import AutoTokenizer, T5TokenizerFast
 from tqdm import tqdm
 
 from . import metricx_models
 from .config import device
-
+from .config import DATA_DIR
 
 def comet22_eval(sources, translations, references):
     """
@@ -75,3 +77,46 @@ def metricx24_eval(sources, translations, model_name="google/metricx-24-hybrid-l
             all_scores.extend(batch_predictions)
 
     return all_scores
+
+def analyze_hypos(in_csv, lang, out_folder=f"{DATA_DIR}/translate_again", remove_canary=True):
+    """
+    takes translation results csv and finds the most likely and highest comet translations
+    returns csv with source, hypo_a (most likely), hypo_b (highest comet), comet score difference
+    """
+
+    df = pd.read_csv(in_csv)
+
+    # give rank to translations for each source for likelihood, comet and metricx
+    df['likelihood_rank'] = df.groupby('source')['likelihood'].rank(ascending=False, method='first').astype(int)
+    df['comet_rank'] = df.groupby('source')['comet22_score'].rank(ascending=False, method='first').astype(int)
+    df['metricx_rank'] = df.groupby('source')['metricx24_score'].rank(ascending=True, method='first').astype(int)
+
+    # first 5 rows are canary
+    if remove_canary:
+        df = df.iloc[5:]
+
+    # make 2 dfs with the best translations according to likelihood and comet
+    model_best_df = df[df['likelihood_rank'] == 1].copy()
+    comet_best_df = df[df['comet_rank'] == 1].copy()
+
+    # merge into one df on source
+    vs_df = pd.merge(
+        model_best_df[['source', 'translation', 'comet22_score']], 
+        comet_best_df[['source', 'translation', 'comet22_score', 'target']], 
+        on='source', 
+        suffixes=('_model', '_comet')
+    )
+
+    # rename hypothesis columns
+    vs_df = vs_df.rename(columns={
+        'translation_model': 'hypo_a', 
+        'translation_comet': 'hypo_b'})
+
+    # calculate comet score difference
+    vs_df['comet_diff'] = vs_df['comet22_score_comet'] - vs_df['comet22_score_model']
+
+    # save output csv
+    os.makedirs(out_folder, exist_ok=True)
+    out_path = os.path.join(out_folder, f"{lang}.csv")
+    vs_df.to_csv(out_path, index=False)
+    print(f"Saved to {out_path}")

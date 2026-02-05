@@ -91,6 +91,32 @@ def load_flores_data(lang, limit=None):
 
     return sources, targets
 
+def load_translate_again_data(lang, data_folder=None, limit=None):
+    """
+    load translate-again data for specified language
+    returns list of dicts with keys: source, hypo_a, hypo_b, comet_diff
+            where each list entry represents one df row
+    """
+
+    if not data_folder:
+        data_folder = f"{DATA_DIR}/translate_again"
+
+    # load csv of this language
+    csv_path = os.path.join(data_folder, f"{lang}.csv")
+    if not os.path.exists(csv_path):
+        print(f"Warning: {csv_path} not found. Skipping.")
+        return []
+    df = pd.read_csv(csv_path)
+
+    # TBD look into why NA values exist
+    df = df.fillna("")
+    
+    # optionally apply limit
+    if limit:
+        df = df.head(limit)
+
+    # convert to list of dicts
+    return df.to_dict(orient="records")
 
 def load_bouquet_data(limit=None):
     """

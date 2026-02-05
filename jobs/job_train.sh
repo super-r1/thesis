@@ -4,7 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
-#SBATCH --time=08:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=logs/%j_train.out
 
 # load environment
@@ -19,16 +19,20 @@ SCRATCH_DIR="/scratch-shared/$USER/$SLURM_JOB_ID"
 export HF_HOME="/scratch-shared/$USER/hf_cache"
 mkdir -p "$SCRATCH_DIR"
 mkdir -p "$HF_HOME" 
-cp -r . "$SCRATCH_DIR"
+#cp -r . "$SCRATCH_DIR"
+rsync -av --exclude='outputs' --exclude='logs' . "$SCRATCH_DIR"
 cd "$SCRATCH_DIR"
 
 # activate conda environment
 source activate translate-gemma
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
+# set data path for translate again data
+DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/flores"
+
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python -u train.py --name mult_samples_1 --langs nl zh
+python -u train.py --name mult_samples_1_again --langs nl zh --mode again --data_folder $DATA_AGAIN --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint-1006"
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
