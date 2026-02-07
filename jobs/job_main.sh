@@ -4,7 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
-#SBATCH --time=04:00:00
+#SBATCH --time=12:00:00
 #SBATCH --output=logs/%j.out
 
 # load environment
@@ -28,7 +28,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # run code
 echo "Starting Gemma Translation at $(date)"
-python main.py --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint-again" --langs nl zh --num_samples 5 --mode again --force 
+python main.py --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint-again_CLEAN" --langs nl zh --num_samples 5 --mode again --force 
 
 # save results
 echo "Moving results to Home directory..."

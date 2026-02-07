@@ -28,11 +28,11 @@ source activate translate-gemma
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # set data path for translate again data
-DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/flores"
+DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/flores_CLEAN"
 
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python -u train.py --name mult_samples_1_again --langs nl zh --mode again --data_folder $DATA_AGAIN --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint-1006"
+python -u train.py --name mult_samples_1_again --langs nl zh --mode again --data_folder $DATA_AGAIN --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint-finetune"
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")
