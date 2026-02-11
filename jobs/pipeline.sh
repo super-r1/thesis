@@ -24,6 +24,7 @@ mkdir -p "$HF_HOME"
 rsync -a --exclude='.git' --exclude='outputs' --exclude='logs' . "$SCRATCH_DIR"
 cd "$SCRATCH_DIR"
 
+# activate conda environment
 source activate translate-gemma
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
