@@ -20,7 +20,7 @@ export HF_HOME="/scratch-shared/$USER/hf_cache"
 mkdir -p "$SCRATCH_DIR"
 mkdir -p "$HF_HOME" 
 #cp -r . "$SCRATCH_DIR"
-rsync -av --exclude='outputs' --exclude='logs' . "$SCRATCH_DIR"
+rsync -a --exclude='.git' --exclude='outputs' --exclude='logs' . "$SCRATCH_DIR"
 cd "$SCRATCH_DIR"
 
 # activate conda environment
@@ -32,7 +32,7 @@ DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/flores_CLEAN"
 
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python -u train.py --name mult_samples_1_again --langs nl zh --mode again --data_folder $DATA_AGAIN --checkpoint "$SLURM_SUBMIT_DIR/outputs/mult_samples_1/checkpoint-finetune"
+python -u train.py --name mult_samples_1_again --langs nl zh --mode again --data_folder $DATA_AGAIN
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")

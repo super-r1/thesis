@@ -26,8 +26,9 @@ def load_wmt_data(lang, limit=None):
     ds = load_dataset("google/wmt24pp", lang)
     df = pd.DataFrame(ds['train'])
     
-    # discard canary rows
+    # discard canary rows and bad source rows
     df_clean = df[df['domain'] != 'canary']
+    df_clean = df[df["is_bad_source"] == False]
     
     # optionally apply limit and return source+target sentences
     sources = df_clean['source'].tolist()[:limit]

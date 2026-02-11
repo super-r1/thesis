@@ -5,17 +5,20 @@ This repository contains the code for my thesis project on Machine Translation.
 
 ## Code Structure
 ```text
-├── main.py              # Run full pipeline
-├── src/                 # Source code folder
-│   ├── __init__.py      # Package initialization
-│   ├── config.py        # Configuration (Model IDs, Devices)
-│   ├── data_loader.py   # Dataset loading and processing
-│   ├── model_utils.py   # Translation Model loading
-│   ├── translate.py     # Run translations
-│   └── evaluate.py      # Metric calculations
-├── notebooks/           # Experimental and exploratory Jupyter Notebooks
-├── outputs/             # (Created at runtime, ignored by Git) Saved results
-└── .env                 # Environment variables (KEEP PRIVATE)
+├── main.py               # Run translation and evaluation pipeline
+├── train.py              # Run fine-tuning pipeline
+├── src/                  # Source code folder
+│   ├── __init__.py       # Package initialization
+│   ├── config.py         # Configuration (Model IDs, Devices)
+│   ├── data_loader.py    # Dataset loading and processing
+│   ├── model_utils.py    # Translation Model loading
+│   ├── translate.py      # Run translations
+│   ├── metricx_models.py # Models for MetricX
+│   └── evaluate.py       # Metric calculations
+├── jobs/                 # Bash job scripts for Snellius Cluster
+├── outputs/              # (Created at runtime, ignored by Git) Saved results
+├── envs/                 # Environment setup files
+└── .env                  # Environment variables (KEEP PRIVATE)
 ```
 
 ## Usage
@@ -32,7 +35,15 @@ If no GPU available:
 ### 2. Configuration
 Add your HuggingFace `HF_TOKEN` in the `.env` file.
 
-### 3. Running the Pipeline
-Locally: `python main.py`
+Set `DATA_DIR` and `OUTPUT_DIR` in `src/config.py`
 
-On cluster: `sbatch job.sh`
+### 3. Running the Pipeline
+##### Inference and evaluation
+Locally: `python main.py` (use `-h` to see options)
+
+On cluster: `sbatch job_main.sh`
+
+##### Fine-Tuning
+Locally: `python train.py` (use `-h` to see options)
+
+On cluster: `sbatch job_train.sh`

@@ -157,7 +157,7 @@ else:
 
 # trainer args
 training_args = TrainingArguments(
-    output_dir=os.path.join(os.getcwd(), "outputs", args.name),
+    output_dir=os.path.join("outputs", args.name),
     per_device_train_batch_size=4,
     gradient_accumulation_steps=2,
     learning_rate=args.lr,
@@ -165,7 +165,7 @@ training_args = TrainingArguments(
     warmup_ratio=0.1,
     bf16=torch.cuda.is_available(),
     logging_steps=5,
-    num_train_epochs=2,
+    num_train_epochs=1,
     save_strategy="epoch",
     save_total_limit=1,
     load_best_model_at_end=False,
@@ -189,3 +189,7 @@ trainer = SFTTrainer(
 )
 
 trainer.train()
+
+# print checkpoint (for pipeline to grab later)
+checkpoint_path = trainer.state.best_model_checkpoint or training_args.output_dir
+print(f"COMPLETED_CHECKPOINT:{os.path.abspath(checkpoint_path)}")
