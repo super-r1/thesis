@@ -1,30 +1,73 @@
 import torch
 from tqdm import tqdm
 import torch.nn.functional as F
+from .config import MODEL_ID_MAP, LANG_MAP
 
-def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4, num_samples=1):
+def make_messages(text, target_lang, model_name, source_lang="en", mode="standard", hypo=None, again_instr="refine_instr"):
+    """
+    creates message with correct formatting, depending on model and mode
+    """
+    model_info = MODEL_ID_MAP[model_name]
+    target_lang_code = LANG_MAP[target_lang]["gemma"]
+
+    # translate-only gemma
+    if model_info["type"] == "translate_only":
+        user_text = text
+        if mode == "again" and hypo:
+            instr = model_info[again_instr]
+            user_text = (
+                f"Source: {text}\n"
+                f"Initial Hypothesis: {hypo}\n"
+                f"Instruction: {instr}"
+            )
+        
+        return [{
+            "role": "user",
+            "content": [{
+                "type": "text",
+                "text": user_text,
+                "source_lang_code": source_lang,
+                "target_lang_code": target_lang_code
+            }]
+        }]
+
+    # general gemma
+    if mode == "again":
+        instr = model_info[again_instr]
+        user_text = f"{instr}\n\nSource: {text}\nDraft: {hypo}"
+    else:
+        instr = model_info["system_instr"]
+        user_text = f"{instr}\n\nTranslate this to {LANG_MAP[target_lang]['name']}: {text}"
+
+    return [{
+        "role": "user", 
+        "content": [{"type": "text", "text": user_text}]
+    }]
+
+def batch_translate(model, processor, sources, model_name, lang_key="nl", 
+                    batch_size=4, num_samples=1, mode="standard", hypos=None):
     """
     Translates a list of strings using the provided model and processor.
     Uses batching and a progress bar (tqdm) for CPU efficiency and feedback.
     
     Returns list of {source, translation, likelihood} dictionaries.
     Likelihood is calculated as the average log-probability per generated token.
-    If use_again_prompt is True, the translate-again prompt is used and the input message format is different.
     """
     all_results = []
     
     # tqdm creates the progress bar based on the number of batches
     for i in tqdm(range(0, len(sources), batch_size), desc="Translating in batches", unit="batch"):
         batch_texts = sources[i : i + batch_size]
-        
-        # format the batch for the TranslateGemma chat template
-        batch_messages = [
-            [{"role": "user", "content": [{"type": "text", "source_lang_code": "en", 
-            "target_lang_code": target_lang, "text": txt}]}]
-            for txt in batch_texts
-        ]
+
+        # create prompt message (using helper function)
+        batch_hypos = hypos[i : i + batch_size] if hypos is not None else [None] * len(batch_texts)
+        batch_messages = []
+        for txt, h in zip(batch_texts, batch_hypos):
+            conversation = make_messages(txt, lang_key, model_name, mode=mode, hypo=h)
+            batch_messages.append(conversation)
 
         # tokenize the current batch
+        # print(f"DEBUG: {batch_messages[0]}")
         inputs = processor.apply_chat_template(
             batch_messages, 
             tokenize=True, 
@@ -43,14 +86,12 @@ def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4
                 do_sample=True,
                 top_p=0.9,
                 top_k=50,
-                # temperature=None,
-                #num_beams=max(3, num_samples*3),
+                num_return_sequences=num_samples,
+                #temperature=None,
                 #num_beams=1,
                 #num_beam_groups=num_samples,
                 #trust_remote_code=True,
-                num_return_sequences=num_samples,
                 #diversity_penalty=1.0,
-                #no_repeat_ngram_size=3,
                 #length_penalty=0.8,
                 #early_stopping=True
             )

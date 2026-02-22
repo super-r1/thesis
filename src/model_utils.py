@@ -1,10 +1,10 @@
 import torch
 from transformers import AutoModelForImageTextToText, AutoProcessor
 from peft import PeftModel
-from .config import model_id, HF_TOKEN, device
+from .config import MODEL_ID_MAP, DEFAULT_MODEL, HF_TOKEN, device
 
-def load_model_and_processor(checkpoint_path=None):
-    #processor = AutoProcessor.from_pretrained(model_id, token=HF_TOKEN)
+def load_model_and_processor(checkpoint_path=None, model_name=DEFAULT_MODEL):
+    model_id = MODEL_ID_MAP[model_name]["id"]
     processor = AutoProcessor.from_pretrained(model_id, token=HF_TOKEN, use_fast=True)
     
     # padding for batch processing
