@@ -1,30 +1,81 @@
 import torch
 from tqdm import tqdm
 import torch.nn.functional as F
+from .config import MODEL_ID_MAP, LANG_MAP
 
-def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4, num_samples=1):
+def make_messages(text, target_lang, model_name, source_lang="en", mode="standard", hypo=None):
+    """
+    creates message with correct formatting, depending on model and mode
+    """
+    model_info = MODEL_ID_MAP[model_name]
+    target_lang_code = LANG_MAP[target_lang]["gemma"]
+
+    # translate-only gemma
+    if model_info["type"] == "translate_only":
+        content_text = text
+        if mode == "again" and hypo:
+            content_text = f"Source: {text}\nInitial Hypothesis: {hypo}"
+        return [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": content_text,
+                        "source_lang_code": source_lang,
+                        "target_lang_code": target_lang_code
+                    }
+                ]
+            }
+        ]
+
+    # standard gemma
+    if mode == "again" and hypo:
+        user_text = f"Source: {text}\nInitial Hypothesis: {hypo}"
+    else:
+        # optionally embed system instruction in user text
+        system_instr = model_info.get("system_instr", "")
+        if system_instr:
+            user_text = f"{system_instr}\n\nTranslate to {LANG_MAP[target_lang]['name']}:\n{text}"
+        else:
+            user_text = text
+
+    return [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": user_text}]
+        }
+    ]
+
+
+def batch_translate(model, processor, sources, model_name, lang_key="nl", 
+                    batch_size=4, num_samples=1, mode="standard", hypos=None):
     """
     Translates a list of strings using the provided model and processor.
     Uses batching and a progress bar (tqdm) for CPU efficiency and feedback.
     
     Returns list of {source, translation, likelihood} dictionaries.
     Likelihood is calculated as the average log-probability per generated token.
-    If use_again_prompt is True, the translate-again prompt is used and the input message format is different.
     """
     all_results = []
     
     # tqdm creates the progress bar based on the number of batches
     for i in tqdm(range(0, len(sources), batch_size), desc="Translating in batches", unit="batch"):
         batch_texts = sources[i : i + batch_size]
+
+        batch_hypos = hypos[i : i + batch_size] if hypos is not None else [None] * len(batch_texts)
+        batch_messages = [msg for txt, h in zip(batch_texts, batch_hypos)
+                        for msg in make_messages(txt, lang_key, model_name, mode=mode, hypo=h)]
         
-        # format the batch for the TranslateGemma chat template
-        batch_messages = [
-            [{"role": "user", "content": [{"type": "text", "source_lang_code": "en", 
-            "target_lang_code": target_lang, "text": txt}]}]
-            for txt in batch_texts
-        ]
+        # # format the batch for the TranslateGemma chat template
+        # batch_messages = [
+        #     [{"role": "user", "content": [{"type": "text", "source_lang_code": "en", 
+        #     "target_lang_code": target_lang, "text": txt}]}]
+        #     for txt in batch_texts
+        # ]
 
         # tokenize the current batch
+        print(f"DEBUG: {batch_messages[0]}")
         inputs = processor.apply_chat_template(
             batch_messages, 
             tokenize=True, 
@@ -43,14 +94,12 @@ def batch_translate(model, processor, sources, target_lang="nl-NL", batch_size=4
                 do_sample=True,
                 top_p=0.9,
                 top_k=50,
-                # temperature=None,
-                #num_beams=max(3, num_samples*3),
+                num_return_sequences=num_samples,
+                #temperature=None,
                 #num_beams=1,
                 #num_beam_groups=num_samples,
                 #trust_remote_code=True,
-                num_return_sequences=num_samples,
                 #diversity_penalty=1.0,
-                #no_repeat_ngram_size=3,
                 #length_penalty=0.8,
                 #early_stopping=True
             )

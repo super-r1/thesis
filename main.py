@@ -12,7 +12,8 @@ from src import (
     metricx24_eval,
     analyze_hypos
 )
-from src.config import LANG_MAP
+from src.config import LANG_MAP, MODEL_ID_MAP, DEFAULT_MODEL
+from src.translate import make_messages
 
 def main():
     torch.set_float32_matmul_precision('high')
@@ -29,6 +30,7 @@ def main():
     parser.add_argument("--dataset", type=str, default="wmt", choices=["wmt", "flores"])
     parser.add_argument("--mode", type=str, default="standard", choices=["standard", "again"], 
                     help="Translate mode: 'standard' for one pass, 'again' for translate-again strategy")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=MODEL_ID_MAP.keys())
     args = parser.parse_args()
 
     os.makedirs("outputs", exist_ok=True)
@@ -72,10 +74,11 @@ def main():
 
             # translate
             # returns list of dicts: [{'source', 'translation', 'likelihood'}, ...]
-            gemma_code = LANG_MAP[lang_key]["gemma"]
+            #gemma_code = LANG_MAP[lang_key]["gemma"]
             results_dicts = batch_translate(
                 model, processor, sources, 
-                target_lang=gemma_code, 
+                model_name=args.model,
+                lang_key=lang_key, 
                 num_samples=args.num_samples, 
                 batch_size=2
             )
@@ -90,22 +93,24 @@ def main():
                     extended_sources.extend([s] * args.num_samples)
                 
                 # exact same prompt construction as used during training
-                again_prompts = []
-                for s, h in zip(extended_sources, hypos):
-                    prompt = (
-                        f"Translate from English to {LANG_MAP[lang_key]['name']}.\n"
-                        f"Source: {s}\n"
-                        f"Initial Hypothesis: {h}\n"
-                        f"Instruction: This initial hypothesis needs improvement. Please refine it for accuracy and fluency."
-                    )
-                    again_prompts.append(prompt)
+                # for s, h in zip(extended_sources, hypos):
+                #     prompt = (
+                #         f"Translate from English to {LANG_MAP[lang_key]['name']}.\n"
+                #         f"Source: {s}\n"
+                #         f"Initial Hypothesis: {h}\n"
+                #         f"Instruction: This initial hypothesis needs improvement. Please refine it for accuracy and fluency."
+                #     )
+                #     again_prompts.append(prompt)
                 
-                # run second translation
+                # run second translation (in again mode)
                 again_results = batch_translate(
-                    model, processor, again_prompts, 
-                    target_lang=gemma_code, 
+                    model, processor, extended_sources, 
+                    hypos=hypos,
+                    model_name=args.model,
+                    lang_key=lang_key, 
                     num_samples=1, 
                     batch_size=2,
+                    mode="again"
                 )
 
                 # restore original sources (for correct evaluation)

@@ -7,7 +7,8 @@ from peft import LoraConfig
 from transformers import AutoModelForImageTextToText, AutoProcessor, TrainingArguments
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from src import load_model_and_processor, load_flores_data, load_translate_again_data
-from src.config import LANG_MAP, DATA_DIR
+from src.config import LANG_MAP, DATA_DIR, MODEL_ID_MAP, DEFAULT_MODEL
+from src.translate import make_messages
 
 # setup argparser
 parser = argparse.ArgumentParser(description="Fine-tune pipeline")
@@ -25,6 +26,7 @@ parser.add_argument("--mode", type=str, default="standard", choices=["standard",
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to checkpoint to continue training from(if None, use base model)")
 parser.add_argument("--data_folder", type=str, default=None, 
                     help="Path to folder with csv files for translate-again data (if None, use default in data_loader). Only used when mode='again'")
+parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=MODEL_ID_MAP.keys())
 args = parser.parse_args()
 
 # either target all layers or only attention layers
@@ -62,11 +64,9 @@ def get_formatted_dataset(langs, limit=None):
         sources, targets = load_flores_data(LANG_MAP[lang]["flores"], limit=limit)
 
         for s, t in zip(sources, targets):
+            input_msg = make_messages(s, LANG_MAP[lang]["gemma"], args.model)
             messages = [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": s, "source_lang_code": "en", "target_lang_code": LANG_MAP[lang]["gemma"]}]
-                },
+                input_msg,
                 {"role": "assistant", "content": t}
             ]
             text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
@@ -104,22 +104,21 @@ def get_translate_again_dataset(langs, limit=None, threshold=0.01):
             # most likely and highest comet score are the same or similar
             # instruct to return original most likely hypothesis
             else:
-                instruction = "This initial hypothesis is already high-quality. Please provide the final version."
+                instr = "This initial hypothesis is already high-quality. Please provide the final version."
                 assistant_text = h_a.strip()
 
             # construct prompt
-            user_text = (
-                f"Translate from English to {LANG_MAP[lang]['name']}.\n"
-                f"Source: {s}\n"
-                f"Initial Hypothesis: {h_a}\n"
-                f"Instruction: {instruction}"
+            user_msg = make_messages(
+                text=s, 
+                target_lang=LANG_MAP[lang]["gemma"], 
+                instr=instr,
+                model_name=args.model, 
+                mode="again", 
+                hypo=h_a
             )
 
             messages = [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": user_text, "source_lang_code": "en", "target_lang_code": LANG_MAP[lang]["gemma"]}]
-                },
+                user_msg,
                 {"role": "assistant", "content": assistant_text}
             ]
             
