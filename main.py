@@ -85,6 +85,8 @@ def main():
 
             # if translate-again: do another pass with refinement prompt
             if args.mode == "again":
+                translation_round1 = [result['translation'] for result in results_dicts]
+                likelihood_round1 = [result['likelihood'] for result in results_dicts]
                 hypos = [result['translation'] for result in results_dicts]
 
                 # extend the original sources and likelihoods to match the number of samples (for correct indexing in the next step)
@@ -109,6 +111,11 @@ def main():
 
                 # replace results of first pass with results of second pass
                 results_dicts = again_results
+
+                # add round 1 results
+                for i in range(len(results_dicts)):
+                    results_dicts[i]['translation_round1'] = translation_round1[i]
+                    results_dicts[i]['likelihood_round1'] = likelihood_round1[i]
 
             # copy targets for num_samples>1 (multiple translations for same source)
             df = pd.DataFrame(results_dicts)
@@ -139,6 +146,12 @@ def main():
         metricx_scores = metricx24_eval(curr_sources, curr_translations)
         df["metricx24_score"] = metricx_scores
         avg_metricx = sum(metricx_scores) / len(metricx_scores)
+
+        # evaluate on round 1 data (if mode is again)
+        if args.mode == "again":
+            print(f"Evaluating round 1 translations with COMET-22 and MetricX-24...")
+            df["comet22_score_round1"] = comet22_eval(curr_sources, df['translation_round1'].tolist(), curr_targets).scores
+            df["metricx24_score_round1"] = metricx24_eval(curr_sources, df['translation_round1'].tolist())
         
         # create results filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -155,6 +168,13 @@ def main():
             f.write(f"Samples per Sentence: {args.num_samples}\n")
             f.write(f"Average COMET-22 (Higher is better): {comet_results.system_score:.4f}\n")
             f.write(f"Average MetricX-24 (Lower is better): {avg_metricx:.4f}\n")
+            # optionally add round 1 results if in again mode
+            if args.mode == "again":
+                avg_comet_round1 = df["comet22_score_round1"].mean()
+                avg_metricx_round1 = df["metricx24_score_round1"].mean()
+                f.write(f"\nRound 1 Results:\n")
+                f.write(f"Average COMET-22: {avg_comet_round1:.4f}\n")
+                f.write(f"Average MetricX-24: {avg_metricx_round1:.4f}\n")
             f.write(f"Total Candidate Count: {len(curr_translations)}\n")
 
         print(f"\nResults for {lang_key}:")
