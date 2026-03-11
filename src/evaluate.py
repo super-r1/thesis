@@ -25,6 +25,22 @@ def comet22_eval(sources, translations, references):
     num_gpus = 1 if device == "cuda" else 0
     return comet_model.predict(comet_data, batch_size=16, gpus=num_gpus)
 
+def comet_kiwi_xl_eval(sources, translations):
+    """
+    calculate comet-kiwi-xl scores (reference-free)
+    """
+    print("Evaluating with COMET-Kiwi-XL...")
+    comet_model_path = download_model("Unbabel/wmt23-cometkiwi-da-xl")
+    comet_model = load_from_checkpoint(comet_model_path)
+    
+    comet_data = [
+        {"src": s, "mt": t} 
+        for s, t in zip(sources, translations)
+    ]
+    
+    num_gpus = 1 if device == "cuda" else 0
+    return comet_model.predict(comet_data, batch_size=8, gpus=num_gpus)
+
 
 def metricx24_eval(sources, translations, model_name="google/metricx-24-hybrid-large-v2p6", batch_size=4):
     """
