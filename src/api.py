@@ -21,20 +21,16 @@ client = genai.Client(
 class DetailedDifference(typing.TypedDict):
     difference_id: int
     location: typing.Literal["first_half", "second_half"]
-    category: typing.Literal["Lexical", "Syntactic", "Grammatical", "Stylistic"]
     t1_version: str
     t2_version: str
     reason_for_change: str
 
 class Metrics(typing.TypedDict):
-    source_word_count: int
     total_major_differences: int
     differences_in_first_half: int
     differences_in_second_half: int
 
 class ComparativeAnalysis(typing.TypedDict):
-    t2_vs_t1_literalness: typing.Literal["more_literal", "less_literal", "no_change"]
-    primary_refinement_trend: str
     modification_density: typing.Literal["first_half_heavy", "second_half_heavy", "balanced"]
 
 # combine previous 3 classes into final json object template
@@ -45,20 +41,19 @@ class TranslationAnalysis(typing.TypedDict):
 
 # custom instruction for model
 system_instruction = """
-Analyze English to Dutch translations by comparing T1 (initial) and T2 (refined) against the source.
+Analyze English to Chinese translations by comparing T1 (initial) and T2 (refined) against the source.
 
 Rules:
 - Difference Detection: Identify major changes in wording, syntax, and semantics. Ignore minor punctuation or capitalization.
-- Positional Logic: Split the source word count by 2. Assign differences to 'first_half' or 'second_half' based on where the change occurs in the source string.
-- Comparative Analysis: Evaluate if T2 has moved toward a more literal or more natural/stylistic rendering compared to T1.
+- Positional Logic: Divide the source sentence into two equal halves based on its length. Assign differences to 'first_half' or 'second_half' based on where the change occurs in the source string.
 - Null Case: If T1 and T2 are identical strings, return 0 for all metrics and an empty list [] for detailed_differences.
 """
 
 # load data and initialize empty results and output file
-df = pd.read_csv('results.csv')[500:]
+df = pd.read_csv('results_zh.csv')
 total_rows = len(df)
 all_results = []
-out_name = "analysis_differences.json"
+out_name = "analysis_differences_zh.json"
 print(f"Starting analysis for {len(df)} rows...")
 
 # loop through datapoints in df
@@ -66,10 +61,10 @@ for index, row in df.iterrows():
 
     # enter input data
     user_msg = f"""
-    TGT LANG: Dutch
+    TGT LANG: Chinese
     Source: {row['source']}
     T1: {row['translation_round1']}
-    T2: {row['translation_round2']}
+    T2: {row['translation']}
     """
 
     try:
@@ -82,13 +77,14 @@ for index, row in df.iterrows():
                 system_instruction=system_instruction,
                 response_mime_type="application/json",
                 response_schema=TranslationAnalysis,
-                temperature=0.1,
+                temperature=0
             )
         )
 
         # add response to results array. also add source
         analysis = response.parsed
         analysis['source'] = row['source']
+        analysis['sentence_id'] = index
         all_results.append(analysis)
 
         # intermediate save results
