@@ -32,7 +32,7 @@ DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/flores_gemma3"
 
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python -u train.py --name gemma3_again --langs nl zh --model gemma --lr 2e-5 --mode again --data_folder $DATA_AGAIN --limit 5
+python -u train.py --name gemma3_again --model gemma4b --mode again --langs nl zh --lr 2e-5 --data_folder $DATA_AGAIN --limit 20
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")

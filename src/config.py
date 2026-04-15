@@ -46,8 +46,29 @@ MODEL_ID_MAP = {
  "refine_instr": "This initial hypothesis needs improvement. Please refine it for accuracy and fluency.",
  "keep_instr": "This initial hypothesis is already high-quality. Please provide the final version."
  },
- "gemma": {
+ "gemma1b": {
+ "id": "google/gemma-3-1b-it",
+ "type": "general",
+ "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ },
+"gemma4b": {
  "id": "google/gemma-3-4b-it",
+ "type": "general",
+ "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ },
+ "gemma12b": {
+ "id": "google/gemma-3-12b-it",
+ "type": "general",
+ "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ },
+ "gemma27b": {
+ "id": "google/gemma-3-27b-it",
  "type": "general",
  "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
  "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",

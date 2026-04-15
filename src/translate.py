@@ -44,8 +44,10 @@ def make_messages(text, target_lang, model_name, source_lang="en", mode="standar
         "content": [{"type": "text", "text": user_text}]
     }]
 
-def batch_translate(model, processor, sources, model_name, lang_key="nl", 
-                    batch_size=4, num_samples=1, mode="standard", hypos=None):
+def batch_translate(
+    model, processor, sources, model_name, lang_key="nl",
+    batch_size=4, num_samples=1, mode="standard", hypos=None,
+    do_sample=False, temperature=1.0, top_p=0.9, num_beams=1):
     """
     Translates a list of strings using the provided model and processor.
     Uses batching and a progress bar (tqdm) for CPU efficiency and feedback.
@@ -80,21 +82,16 @@ def batch_translate(model, processor, sources, model_name, lang_key="nl",
         # run inference
         with torch.inference_mode():
             # produce num_samples outputs per source
+
             outputs = model.generate(
-                **inputs, 
+                **inputs,
                 max_new_tokens=256,
-                do_sample=False,
-                #top_p=0.9,
-                #top_k=50,
-                #temperature=None,
-                num_beams=1,
-                num_return_sequences=1,
-                #num_beam_groups=num_samples,
-                #trust_remote_code=True,
-                #diversity_penalty=1.0,
-                #length_penalty=0.8,
-                #early_stopping=True
-            )
+                do_sample=do_sample,
+                temperature=temperature if do_sample else None,
+                top_p=top_p if do_sample else None,
+                num_beams=num_beams,
+                num_return_sequences=num_samples,
+                )
 
         # decode the output (skipping the input tokens)
         input_len = inputs.input_ids.shape[1]

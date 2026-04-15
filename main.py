@@ -31,6 +31,10 @@ def main():
     parser.add_argument("--rounds", type=int, default=1, 
                     help="Number of translation rounds (1 = standard, 2 = again, 3+ = again with more rounds)")
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL, choices=MODEL_ID_MAP.keys())
+    parser.add_argument("--do_sample", action="store_true", help="Use sampling instead of greedy decoding")
+    parser.add_argument("--temperature", type=float, default=1.0)
+    parser.add_argument("--top_p", type=float, default=0.9)
+    parser.add_argument("--num_beams", type=int, default=1)
     args = parser.parse_args()
 
     os.makedirs("outputs", exist_ok=True)
@@ -83,14 +87,18 @@ def main():
                     # round 1: standard translation/prompt
                     # returns list of dicts: [{'source', 'translation', 'likelihood'}, ...]
                     results_dicts = batch_translate(
-                        model, processor, sources, 
+                        model, processor, sources,
                         model_name=args.model,
-                        lang_key=lang_key, 
-                        num_samples=args.num_samples, 
-                        batch_size=2
+                        lang_key=lang_key,
+                        num_samples=args.num_samples,
+                        batch_size=2,
+                        do_sample=args.do_sample,
+                        temperature=args.temperature,
+                        top_p=args.top_p,
+                        num_beams=args.num_beams,
                     )
                 else:
-                    # again rounds (with refeinement prompt)
+                    # again rounds (with refinement prompt)
                     # extend the original sources and likelihoods to match the number 
                     # of samples (for correct indexing in the next step)
                     if r == 2:
@@ -99,13 +107,17 @@ def main():
                             extended_sources.extend([s] * args.num_samples)
                     
                     results_dicts = batch_translate(
-                        model, processor, extended_sources, 
+                        model, processor, extended_sources,
                         hypos=current_hypos,
                         model_name=args.model,
-                        lang_key=lang_key, 
-                        num_samples=1,
+                        lang_key=lang_key,
+                        num_samples=args.num_samples,
                         batch_size=2,
-                        mode="again"
+                        mode="again",
+                        do_sample=args.do_sample,
+                        temperature=args.temperature,
+                        top_p=args.top_p,
+                        num_beams=args.num_beams,
                     )
                     # restore original sources (for correct evaluation)
                     for i, res in enumerate(results_dicts):
@@ -118,10 +130,12 @@ def main():
                 all_round_results[f'translation_round{r}'] = current_hypos
                 all_round_results[f'likelihood_round{r}'] = [res['likelihood'] for res in results_dicts]
 
-            # put all round results in the final results dicts
-            for i in range(len(results_dicts)):
+            # put all round results in the final results dicts and clean up column names without round suffix
+            for i, res in enumerate(results_dicts):
+                res.pop('translation', None)
+                res.pop('likelihood', None)
                 for r_name, r_list in all_round_results.items():
-                    results_dicts[i][r_name] = r_list[i]
+                    res[r_name] = r_list[i]
             
             # copy targets for num_samples>1 (multiple translations for same source)
             df = pd.DataFrame(results_dicts)
@@ -139,19 +153,22 @@ def main():
 
         # prepare lists for evaluation
         curr_sources = df['source'].tolist()
-        curr_translations = df['translation'].tolist()
+        curr_translations = df[f'translation_round{args.rounds}'].tolist()
         curr_targets = df['target'].tolist()
 
         # evaluate comet
         print(f"Evaluating {len(curr_translations)} {lang_key} candidates with COMET-22...")
         comet_results = comet22_eval(curr_sources, curr_translations, curr_targets)
-        df["comet22_score"] = comet_results.scores
+        df[f"comet22_score_round{args.rounds}"] = comet_results.scores
 
-        # evaluate metricx
-        print(f"Evaluating {len(curr_translations)} {lang_key} candidates with MetricX-24...")
-        metricx_scores = metricx24_eval(curr_sources, curr_translations)
-        df["metricx24_score"] = metricx_scores
-        avg_metricx = sum(metricx_scores) / len(metricx_scores)
+        # evaluate metricx (commented out to save computation)
+        # print(f"Evaluating {len(curr_translations)} {lang_key} candidates with MetricX-24...")
+        # metricx_scores = metricx24_eval(curr_sources, curr_translations)
+        # df[f"metricx24_score_round{args.rounds}"] = metricx_scores
+        # avg_metricx = sum(metricx_scores) / len(metricx_scores)
+        metricx_scores = [0.0] * len(curr_translations)
+        df[f"metricx24_score_round{args.rounds}"] = metricx_scores
+        avg_metricx = 0.0
 
         # evaluate other rounds (if rounds > 1)
         if args.rounds > 1:
@@ -164,10 +181,13 @@ def main():
                     comet_scores_r = comet22_eval(curr_sources, df[col].tolist(), curr_targets)
                     df[f"comet22_score_round{r}"] = comet_scores_r.scores
 
-                    metricx_scores_r = metricx24_eval(curr_sources, df[col].tolist())
+                    # (commented out to save computation)
+                    # metricx_scores_r = metricx24_eval(curr_sources, df[col].tolist())
+                    # df[f"metricx24_score_round{r}"] = metricx_scores_r
+                    # round_scores[r] = (comet_scores_r.system_score, sum(metricx_scores_r) / len(metricx_scores_r))
+                    metricx_scores_r = [0.0] * len(curr_sources)
                     df[f"metricx24_score_round{r}"] = metricx_scores_r
-
-                    round_scores[r] = (comet_scores_r.system_score, sum(metricx_scores_r) / len(metricx_scores_r))
+                    round_scores[r] = (comet_scores_r.system_score, 0.0)
 
         # create results filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -203,7 +223,7 @@ def main():
         # if num_samples > 1: analyze results for translate-again
         if args.num_samples > 1 and args.rounds == 1:
             print(f"Analyzing hypotheses for translate-again data...")
-            analyze_hypos(results_file, lang_key, remove_canary=(args.dataset=="wmt"))
+            analyze_hypos(results_file, lang_key, round_num=1, remove_canary=(args.dataset=="wmt"))
 
 if __name__ == "__main__":
     main()

@@ -94,13 +94,19 @@ def metricx24_eval(sources, translations, model_name="google/metricx-24-hybrid-l
 
     return all_scores
 
-def analyze_hypos(in_csv, lang, out_folder=f"{DATA_DIR}/translate_again", remove_canary=True):
+def analyze_hypos(in_csv, lang, round_num=1, out_folder=f"{DATA_DIR}/translate_again", remove_canary=True):
     """
     takes translation results csv and finds the most likely and highest comet translations
     returns csv with source, hypo_a (most likely), hypo_b (highest comet), comet score difference
     """
 
     df = pd.read_csv(in_csv)
+
+    # internal renaming for clarity
+    df["translation"] = df[f"translation_round{round_num}"]
+    df["likelihood"] = df[f"likelihood_round{round_num}"]
+    df["comet22_score"] = df[f"comet22_score_round{round_num}"]
+    df["metricx24_score"] = df[f"metricx24_score_round{round_num}"]
 
     # give rank to translations for each source for likelihood, comet and metricx
     df['likelihood_rank'] = df.groupby('source')['likelihood'].rank(ascending=False, method='first').astype(int)
