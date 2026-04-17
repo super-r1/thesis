@@ -28,11 +28,11 @@ source activate translate-gemma
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # set data path for translate again data
-DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/flores_gemma3"
+DATA_AGAIN="/scratch-shared/bveenman/data/translate_again/scaling/4b"
 
 # run training
 echo "Starting Gemma Training (Fine-Tuning) at $(date)"
-python -u train.py --name gemma3_again --model gemma4b --mode again --langs nl zh --lr 2e-5 --data_folder $DATA_AGAIN --limit 20
+python -u train.py --model gemma4b --mode again --langs nl zh --lr 2e-5 --data_folder $DATA_AGAIN
 
 # get OUTPUT_DIR from config
 OUTPUT_DIR=$(python -c "from src.config import OUTPUT_DIR; print(OUTPUT_DIR)")

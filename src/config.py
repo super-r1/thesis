@@ -50,29 +50,29 @@ MODEL_ID_MAP = {
  "id": "google/gemma-3-1b-it",
  "type": "general",
  "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
- "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
- "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency. Produce only the translation, without any additional explanations or commentary.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes. Produce only the translation, without any additional explanations or commentary."
  },
 "gemma4b": {
  "id": "google/gemma-3-4b-it",
  "type": "general",
  "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
- "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
- "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency. Produce only the translation, without any additional explanations or commentary.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes. Produce only the translation, without any additional explanations or commentary."
  },
  "gemma12b": {
  "id": "google/gemma-3-12b-it",
  "type": "general",
  "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
- "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
- "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency. Produce only the translation, without any additional explanations or commentary.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes. Produce only the translation, without any additional explanations or commentary."
  },
  "gemma27b": {
  "id": "google/gemma-3-27b-it",
  "type": "general",
  "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
- "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency.",
- "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes."
+ "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency. Produce only the translation, without any additional explanations or commentary.",
+ "keep_instr": "You are an expert editor. Below is a high-quality translation draft. Please provide the final version without changes. Produce only the translation, without any additional explanations or commentary."
  }
 }
 
