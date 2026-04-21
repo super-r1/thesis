@@ -48,6 +48,7 @@ MODEL_ID_MAP = {
  },
  "gemma1b": {
  "id": "google/gemma-3-1b-it",
+ "modality": "text",
  "type": "general",
  "system_instr": "You are a professional translator. Produce only the translation, without any additional explanations or commentary.",
  "refine_instr": "You are an expert editor. Below is a translation draft. Please refine it for accuracy and fluency. Produce only the translation, without any additional explanations or commentary.",
