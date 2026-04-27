@@ -32,17 +32,32 @@ def make_messages(text, target_lang, model_name, source_lang="en", mode="standar
         }]
 
     # general gemma
-    if mode == "again":
-        instr = model_info[again_instr]
-        user_text = f"{instr}\n\nSource: {text}\nDraft: {hypo}"
-    else:
-        instr = model_info["system_instr"]
-        user_text = f"{instr}\n\nTranslate this to {LANG_MAP[target_lang]['name']}: {text}"
+    if model_info["type"] == "general":
+        target_name = LANG_MAP[target_lang]["name"]
 
-    return [{
-        "role": "user", 
-        "content": [{"type": "text", "text": user_text}]
-    }]
+        if mode == "again":
+            # Round 2: explicitly state target language and that Draft is in that language
+            user_text = (
+                f"You are an expert editor for translations into {target_name}. "
+                f"Below is a {target_name} translation draft of an English sentence. "
+                f"Refine it for accuracy and fluency. "
+                f"Produce only the final translation in {target_name}, without any additional explanations or commentary.\n\n"
+                f"Source (English): {text}\n"
+                f"Draft ({target_name}): {hypo}"
+            )
+        else:
+            # Round 1: plain translation, with explicit target language and output constraint
+            user_text = (
+                f"You are a professional translator. "
+                f"Translate the following English sentence into {target_name}. "
+                f"Produce only the translation in {target_name}, without any additional explanations or commentary.\n\n"
+                f"Source (English): {text}"
+            )
+
+        return [{
+            "role": "user",
+            "content": [{"type": "text", "text": user_text}]
+        }]
 
 def batch_translate(
     model, processor, sources, model_name, lang_key="nl",
