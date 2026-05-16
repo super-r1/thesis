@@ -9,6 +9,7 @@ from src import (
     load_flores_data,
     batch_translate,
     comet22_eval,
+    comet_kiwi_xl_eval,
     metricx24_eval,
     analyze_hypos
 )
@@ -156,38 +157,52 @@ def main():
         curr_translations = df[f'translation_round{args.rounds}'].tolist()
         curr_targets = df['target'].tolist()
 
-        # evaluate comet
+        # evaluate comet22
         print(f"Evaluating {len(curr_translations)} {lang_key} candidates with COMET-22...")
         comet_results = comet22_eval(curr_sources, curr_translations, curr_targets)
         df[f"comet22_score_round{args.rounds}"] = comet_results.scores
 
-        # evaluate metricx (commented out to save computation)
-        # print(f"Evaluating {len(curr_translations)} {lang_key} candidates with MetricX-24...")
-        # metricx_scores = metricx24_eval(curr_sources, curr_translations)
-        # df[f"metricx24_score_round{args.rounds}"] = metricx_scores
-        # avg_metricx = sum(metricx_scores) / len(metricx_scores)
-        metricx_scores = [0.0] * len(curr_translations)
+        # evaluate cometkiwi
+        print(f"Evaluating {len(curr_translations)} {lang_key} candidates with COMET-Kiwi-XL...")
+        cometkiwi_results = comet_kiwi_xl_eval(curr_sources, curr_translations)
+        df[f"cometkiwi_xl_score_round{args.rounds}"] = cometkiwi_results.scores
+
+        # evaluate metricx
+        print(f"Evaluating {len(curr_translations)} {lang_key} candidates with MetricX-24...")
+        metricx_scores = metricx24_eval(curr_sources, curr_translations)
         df[f"metricx24_score_round{args.rounds}"] = metricx_scores
-        avg_metricx = 0.0
+        avg_metricx = sum(metricx_scores) / len(metricx_scores)
+        avg_cometkiwi = cometkiwi_results.system_score
 
         # evaluate other rounds (if rounds > 1)
         if args.rounds > 1:
+            # store (comet22, cometkiwi, metricx) for each earlier round
             round_scores = {}
             for r in range(1, args.rounds):
                 col = f"translation_round{r}"
                 if col in df.columns:
                     print(f"Evaluating translations for round {r}...")
-                    
-                    comet_scores_r = comet22_eval(curr_sources, df[col].tolist(), curr_targets)
+
+                    translations_r = df[col].tolist()
+
+                    # comet22
+                    comet_scores_r = comet22_eval(curr_sources, translations_r, curr_targets)
                     df[f"comet22_score_round{r}"] = comet_scores_r.scores
 
-                    # (commented out to save computation)
-                    # metricx_scores_r = metricx24_eval(curr_sources, df[col].tolist())
-                    # df[f"metricx24_score_round{r}"] = metricx_scores_r
-                    # round_scores[r] = (comet_scores_r.system_score, sum(metricx_scores_r) / len(metricx_scores_r))
-                    metricx_scores_r = [0.0] * len(curr_sources)
+                    # cometkiwi
+                    cometkiwi_results_r = comet_kiwi_xl_eval(curr_sources, translations_r)
+                    df[f"cometkiwi_xl_score_round{r}"] = cometkiwi_results_r.scores
+
+                    # metricx
+                    metricx_scores_r = metricx24_eval(curr_sources, translations_r)
                     df[f"metricx24_score_round{r}"] = metricx_scores_r
-                    round_scores[r] = (comet_scores_r.system_score, 0.0)
+                    avg_metricx_r = sum(metricx_scores_r) / len(metricx_scores_r)
+
+                    round_scores[r] = (
+                        comet_scores_r.system_score,
+                        cometkiwi_results_r.system_score,
+                        avg_metricx_r,
+                    )
 
         # create results filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
@@ -202,21 +217,25 @@ def main():
             f.write(f"Language: {lang_key}\n")
             f.write(f"Checkpoint: {args.checkpoint if args.checkpoint else 'None'}\n")
             f.write(f"Samples per Sentence: {args.num_samples}\n")
-            f.write(f"Average COMET-22 (Higher is better): {comet_results.system_score:.4f}\n")
-            f.write(f"Average MetricX-24 (Lower is better): {avg_metricx:.4f}\n")
+            f.write(f"Average COMET-22 (higher is better): {comet_results.system_score:.4f}\n")
+            f.write(f"Average COMET-Kiwi-XL (higher is better): {avg_cometkiwi:.4f}\n")
+            f.write(f"Average MetricX-24 (lower is better): {avg_metricx:.4f}\n")
 
             # optionally write other round results if rounds > 1
             if args.rounds > 1:
                 for r in range(1, args.rounds):
                     if r in round_scores:
-                        comet_r, metricx_r = round_scores[r]
+                        comet_r, cometkiwi_r, metricx_r = round_scores[r]
                         f.write(f"\nRound {r} Results:\n")
                         f.write(f"Average COMET-22: {comet_r:.4f}\n")
+                        f.write(f"Average COMET-Kiwi-XL: {cometkiwi_r:.4f}\n")
                         f.write(f"Average MetricX-24: {metricx_r:.4f}\n")
+
             f.write(f"Total Candidate Count: {len(curr_translations)}\n")
 
         print(f"\nResults for {lang_key}:")
         print(f"Average COMET-22: {comet_results.system_score:.4f}")
+        print(f"Average COMET-Kiwi-XL: {avg_cometkiwi:.4f}")
         print(f"Average MetricX-24: {avg_metricx:.4f}")
         print(f"Results saved to: {results_file}")
 
